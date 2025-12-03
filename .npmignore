@@ -1,0 +1,13 @@
+src
+test-output
+coverage
+*.spec.ts
+*.test.ts
+.spec.swcrc
+jest.config.js
+tsconfig.spec.json
+.github
+.git
+.gitignore
+node_modules
+*.log

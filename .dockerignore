@@ -1,0 +1,52 @@
+# Node modules (will be installed in container)
+node_modules
+npm-debug.log
+yarn-error.log
+
+# Build artifacts
+dist
+*.tsbuildinfo
+
+# Test files
+**/*.test.ts
+**/*.spec.ts
+**/*.test.js
+**/*.spec.js
+coverage
+.nyc_output
+
+# Development files
+.git
+.gitignore
+.github
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Documentation (except README, LICENSE, and SECURITY.md which are copied explicitly)
+*.md
+!README.md
+!LICENSE
+!SECURITY.md
+
+# Configuration files (will be mounted as volume)
+mcp-filesystem-config.json
+test-config.json
+config/
+
+# CI/CD
+.travis.yml
+.gitlab-ci.yml
+azure-pipelines.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary files
+tmp
+temp
+*.tmp
+*.log

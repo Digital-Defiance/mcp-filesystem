@@ -1,0 +1,75 @@
+version: "3.8"
+
+services:
+  mcp-filesystem:
+    image: digitaldefiance/mcp-filesystem:latest
+    container_name: mcp-filesystem-server
+
+    # Build configuration (for local development)
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    # Security settings
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+    read_only: false
+
+    # Resource limits
+    deploy:
+      resources:
+        limits:
+          cpus: "2.0"
+          memory: 2G
+        reservations:
+          cpus: "0.5"
+          memory: 512M
+
+    # Environment variables
+    environment:
+      - NODE_ENV=production
+      - MCP_FILESYSTEM_CONFIG_PATH=/app/config/mcp-filesystem-config.json
+      - MCP_FILESYSTEM_WORKSPACE=/app/workspace
+
+    # Volumes
+    volumes:
+      # Mount configuration directory (read-only for security)
+      - ./config:/app/config:ro
+      # Mount workspace directory (read-write for filesystem operations)
+      - ./workspace:/app/workspace:rw
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Logging
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+    # Network mode (stdio transport doesn't need network)
+    network_mode: none
+
+    # Health check
+    healthcheck:
+      test: ["CMD", "node", "-e", "process.exit(0)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # User (non-root)
+    user: "1001:1001"
+
+    # Stdin/stdout for MCP protocol
+    stdin_open: true
+    tty: false
+# Optional: Development override
+# Create docker-compose.override.yml for local development settings

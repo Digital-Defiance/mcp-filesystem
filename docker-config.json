@@ -1,0 +1,21 @@
+{
+  "workspaceRoot": "/app/workspace",
+  "allowedSubdirectories": [],
+  "blockedPaths": [".git", ".env", "node_modules", ".ssh", ".aws", ".kube"],
+  "blockedPatterns": [
+    "*.key",
+    "*.pem",
+    "*.env",
+    "*secret*",
+    "*password*",
+    "id_rsa*",
+    "*.p12",
+    "*.pfx"
+  ],
+  "maxFileSize": 104857600,
+  "maxBatchSize": 1073741824,
+  "maxOperationsPerMinute": 100,
+  "enableAuditLog": true,
+  "requireConfirmation": false,
+  "readOnly": false
+}

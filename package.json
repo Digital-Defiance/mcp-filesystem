@@ -1,0 +1,142 @@
+{
+  "name": "@ai-capabilities-suite/mcp-filesystem",
+  "version": "0.1.0",
+  "mcpName": "io.github.Digital-Defiance/mcp-filesystem",
+  "packageManager": "yarn@4.12.0",
+  "description": "MCP server for advanced filesystem operations with strict security boundaries. Batch operations, directory watching, file search/indexing, and permission management - all within secure, configurable boundaries.",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "mcp-filesystem": "./dist/cli.js"
+  },
+  "exports": {
+    "./package.json": "./package.json",
+    ".": {
+      "@ts-mcp/source": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE",
+    "DOCKER.md",
+    "SECURITY.md",
+    "Dockerfile",
+    "docker-compose.yml",
+    "docker-config.json",
+    "!**/*.tsbuildinfo",
+    "!**/*.spec.js",
+    "!**/*.test.js"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "jest --maxWorkers=1 --forceExit",
+    "test:coverage": "jest --coverage --maxWorkers=1 --forceExit",
+    "test:watch": "jest --watch",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "lint": "eslint src",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
+    "publish:public": "npm publish --access public",
+    "docker:build": "docker build -t mcp-filesystem:local .",
+    "docker:test": "bash scripts/docker-test.sh",
+    "docker:run": "docker-compose up -d",
+    "docker:stop": "docker-compose down",
+    "docker:logs": "docker-compose logs -f"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "filesystem",
+    "file-operations",
+    "batch-operations",
+    "directory-watching",
+    "file-search",
+    "file-indexing",
+    "security",
+    "ai-agent",
+    "nodejs",
+    "chokidar",
+    "lunr",
+    "checksums",
+    "symlinks",
+    "permissions",
+    "ai-capabilities"
+  ],
+  "author": {
+    "name": "Digital Defiance",
+    "email": "info@digitaldefiance.org",
+    "url": "https://digitaldefiance.org"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-filesystem#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/digital-defiance/ai-capabilities-suite.git",
+    "directory": "packages/mcp-filesystem"
+  },
+  "bugs": {
+    "url": "https://github.com/digital-defiance/ai-capabilities-suite/issues",
+    "email": "info@digitaldefiance.org"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "mcp": {
+    "server": {
+      "name": "mcp-filesystem",
+      "description": "Advanced filesystem operations with strict security boundaries",
+      "version": "0.1.0",
+      "command": "mcp-filesystem",
+      "args": [],
+      "capabilities": [
+        "batch-operations",
+        "directory-watching",
+        "file-search",
+        "file-indexing",
+        "checksums",
+        "symlinks",
+        "disk-usage-analysis",
+        "security-boundaries"
+      ],
+      "tools": 12,
+      "categories": [
+        "filesystem",
+        "file-management",
+        "security",
+        "development-tools"
+      ]
+    }
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.23.0",
+    "chokidar": "^4.0.3",
+    "fast-glob": "^3.3.2",
+    "lunr": "^2.3.9",
+    "minimatch": "^10.1.1",
+    "uuid": "^8.3.2",
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "@swc/core": "^1.15.3",
+    "@swc/helpers": "^0.5.17",
+    "@swc/jest": "^0.2.39",
+    "@types/lunr": "^2.3.7",
+    "@types/minimatch": "^6.0.0",
+    "@types/node": "^20.10.6",
+    "@types/uuid": "^10.0.0",
+    "fast-check": "^4.3.0",
+    "jest": "^29.7.0",
+    "typescript": "^5.3.3"
+  }
+}

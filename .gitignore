@@ -1,0 +1,11 @@
+node_modules
+dist
+build
+*.log
+.DS_Store
+coverage
+test-output
+*.tsbuildinfo
+.env
+.env.local
+mcp-filesystem-config.json
