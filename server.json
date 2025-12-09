@@ -1,20 +1,25 @@
 {
-  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-10-17/server.schema.json",
   "name": "io.github.Digital-Defiance/mcp-filesystem",
-  "description": "Advanced filesystem operations for AI agents with strict security boundaries. Batch operations, directory watching, file search/indexing, checksums, symlinks, and disk usage analysis - all within secure, configurable boundaries.",
+  "description": "Advanced filesystem operations with batch ops, watching, search, checksums, and strict security.",
   "version": "0.1.0",
-  "homepage": "https://github.com/Digital-Defiance/mcp-filesystem",
+  "homepage": "https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-filesystem",
   "license": "MIT",
   "packages": [
     {
-      "registry_type": "npm",
+      "registryType": "npm",
       "identifier": "@ai-capabilities-suite/mcp-filesystem",
-      "version": "0.1.0"
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
     },
     {
-      "registry_type": "docker",
-      "identifier": "digitaldefiance/mcp-filesystem",
-      "version": "latest"
+      "registryType": "oci",
+      "identifier": "digitaldefiance/mcp-filesystem:latest",
+      "transport": {
+        "type": "stdio"
+      }
     }
   ],
   "capabilities": {

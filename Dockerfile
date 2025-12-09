@@ -83,4 +83,5 @@ LABEL org.opencontainers.image.title="MCP Filesystem Server" \
       org.opencontainers.image.url="https://github.com/digital-defiance/ai-capabilities-suite" \
       org.opencontainers.image.documentation="https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-filesystem" \
       org.opencontainers.image.source="https://github.com/digital-defiance/ai-capabilities-suite" \
-      org.opencontainers.image.licenses="MIT"
+      org.opencontainers.image.licenses="MIT" \
+      io.modelcontextprotocol.server.name="io.github.Digital-Defiance/mcp-filesystem"
