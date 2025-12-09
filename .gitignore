@@ -9,3 +9,5 @@ test-output
 .env
 .env.local
 mcp-filesystem-config.json
+.mcpregistry_github_token
+.mcpregistry_registry_token
