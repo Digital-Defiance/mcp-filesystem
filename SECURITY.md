@@ -1,90 +1,74 @@
-# Security Configuration Guide
+# Security Policy
 
 ## Overview
 
-The MCP Filesystem Server implements a defense-in-depth security architecture with multiple layers of protection. This guide explains the security model, configuration options, and best practices.
+The MCP Filesystem Server implements defense-in-depth security with multiple layers of protection to ensure AI agents can perform filesystem operations safely within strict boundaries. This document describes the security architecture, configuration, and best practices.
 
-## Security Philosophy
+## Security Architecture
 
-### Core Principles
+### Multi-Layer Security Model
 
-1. **Workspace Jail**: All operations are confined to a single workspace root directory
-2. **Defense in Depth**: 10 layers of path validation ensure comprehensive protection
-3. **Principle of Least Privilege**: Minimal access by default, explicit grants required
-4. **Audit and Accountability**: All operations logged for forensic analysis
-5. **Fail Secure**: Security violations result in operation denial, not degraded security
-
-### Threat Model
-
-The server protects against:
-
-- **Path Traversal Attacks**: Attempts to escape workspace using `../` sequences
-- **Symlink Attacks**: Symlinks pointing outside workspace boundaries
-- **System File Access**: Unauthorized access to system directories and sensitive files
-- **Resource Exhaustion**: Large file operations that could fill disk or consume memory
-- **Rate Limit Abuse**: Excessive operations that could impact system performance
-
-## 10-Layer Security Architecture
-
-### Layer 1: Absolute Path Resolution
-
-**Purpose**: Prevent relative path manipulation
-
-**Implementation**: All paths are resolved to absolute paths before validation
-
-**Example**:
+The server implements 10 layers of path validation that work together to prevent unauthorized access:
 
 ```
-Input:  "../../etc/passwd"
-Resolved: "/workspace/../../etc/passwd" → "/etc/passwd"
-Result: BLOCKED (outside workspace)
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 1: Absolute Path Resolution                          │
+│ Prevents relative path tricks                              │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 2: Workspace Boundary Check                          │
+│ Ensures path is within workspace root                      │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 3: Path Traversal Detection                          │
+│ Blocks .. and ./ sequences                                 │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 4: System Path Blocklist (HARDCODED)                 │
+│ Blocks /etc, /sys, C:\Windows, etc.                        │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 5: Sensitive Pattern Blocklist (HARDCODED)           │
+│ Blocks .ssh/, *.key, *.pem, etc.                          │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 6: Subdirectory Restrictions (OPTIONAL)              │
+│ Restricts to specific subdirectories within workspace      │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 7: User Blocklist (CONFIGURABLE)                     │
+│ Custom blocked paths                                       │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 8: User Pattern Blocklist (CONFIGURABLE)             │
+│ Custom blocked patterns                                    │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 9: Read-Only Mode (OPTIONAL)                         │
+│ Prevents write/delete operations                           │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│ Layer 10: Symlink Validation                               │
+│ Validates symlink targets are within workspace             │
+└─────────────────────────────────────────────────────────────┘
 ```
 
-### Layer 2: Workspace Boundary Check
+## Hardcoded Security (Cannot Be Disabled)
 
-**Purpose**: Ensure all operations stay within workspace
+### System Paths (Always Blocked)
 
-**Implementation**: Resolved path must start with workspace root
+The following system paths are **always blocked** and cannot be accessed regardless of configuration:
 
-**Configuration**: Set via `workspaceRoot` (REQUIRED)
-
-**Example**:
-
-```json
-{
-  "workspaceRoot": "/home/user/projects/my-app"
-}
-```
-
-**What's Blocked**:
-
-- Any path resolving outside `/home/user/projects/my-app`
-- Symlinks pointing outside workspace
-- Relative paths that escape workspace
-
-### Layer 3: Path Traversal Detection
-
-**Purpose**: Block obvious traversal attempts
-
-**Implementation**: Reject paths containing `..`, `./`, or `.\`
-
-**Example**:
-
-```
-BLOCKED: "src/../../../etc/passwd"
-BLOCKED: "./../../sensitive/file"
-ALLOWED: "src/components/Button.tsx"
-```
-
-### Layer 4: System Path Blocklist (Hardcoded)
-
-**Purpose**: Prevent access to critical system directories
-
-**Implementation**: Hardcoded list that CANNOT be overridden
-
-**Blocked Paths**:
-
-**Linux/Unix**:
+**Linux/Unix:**
 
 - `/etc` - System configuration
 - `/sys` - System information
@@ -92,336 +76,303 @@ ALLOWED: "src/components/Button.tsx"
 - `/dev` - Device files
 - `/boot` - Boot files
 - `/root` - Root user home
-- `/bin`, `/sbin` - System binaries
-- `/usr/bin`, `/usr/sbin` - User binaries
+- `/bin` - System binaries
+- `/sbin` - System binaries
+- `/usr/bin` - User binaries
+- `/usr/sbin` - System binaries
 
-**macOS**:
-
-- `/System` - System files
-- `/Library` - System libraries
-- `/Applications` - System applications
-
-**Windows**:
+**Windows:**
 
 - `C:\Windows` - Windows system directory
 - `C:\Program Files` - Program files
-- `C:\Program Files (x86)` - 32-bit programs
+- `C:\Program Files (x86)` - 32-bit program files
 
-**Why Hardcoded**: These paths contain critical system files. Allowing access could compromise system security or stability.
+**macOS:**
 
-### Layer 5: Sensitive Pattern Blocklist (Hardcoded)
+- `/System` - System files
+- `/Library` - System library
+- `/Applications` - Applications directory
 
-**Purpose**: Prevent access to sensitive files and credentials
+### Sensitive File Patterns (Always Blocked)
 
-**Implementation**: Hardcoded patterns that CANNOT be overridden
+The following file patterns are **always blocked** and cannot be accessed:
 
-**Blocked Patterns**:
-
-**SSH Keys and Certificates**:
-
-- `.ssh/` directory
-- `id_rsa`, `id_dsa`, `id_ecdsa`, `id_ed25519`
+- `.ssh/` - SSH keys and configuration
+- `.aws/` - AWS credentials
+- `.kube/` - Kubernetes configuration
+- `id_rsa` - SSH private keys
 - `*.pem` - PEM certificates
 - `*.key` - Private keys
-- `*.p12`, `*.pfx` - PKCS#12 certificates
+- `*.p12` - PKCS#12 certificates
+- `*.pfx` - Personal Information Exchange files
+- Files containing: `password`, `secret`, `token`
+- `.env` - Environment files with secrets
 
-**Cloud Credentials**:
+## Configuration
 
-- `.aws/` - AWS credentials
-- `.kube/` - Kubernetes config
-- `.gcloud/` - Google Cloud credentials
-
-**Secrets and Passwords**:
-
-- Files containing `password` (case-insensitive)
-- Files containing `secret` (case-insensitive)
-- Files containing `token` (case-insensitive)
-- `.env` files - Environment variables
-
-**Why Hardcoded**: These files contain credentials and secrets. Exposing them to AI agents could lead to credential theft or unauthorized access.
-
-### Layer 6: Subdirectory Restrictions (Optional)
-
-**Purpose**: Further restrict access within workspace
-
-**Configuration**: Set via `allowedSubdirectories`
-
-**Example**:
+### Required Configuration
 
 ```json
 {
-  "workspaceRoot": "/home/user/projects/my-app",
-  "allowedSubdirectories": ["src", "tests", "docs"]
+  "workspaceRoot": "/absolute/path/to/workspace"
 }
 ```
 
-**Effect**:
+**CRITICAL**: The `workspaceRoot` is the only required configuration. All operations are confined to this directory and its subdirectories.
 
-- ✅ ALLOWED: `/home/user/projects/my-app/src/index.ts`
-- ✅ ALLOWED: `/home/user/projects/my-app/tests/unit.test.ts`
-- ❌ BLOCKED: `/home/user/projects/my-app/config/secrets.json`
-- ❌ BLOCKED: `/home/user/projects/my-app/.git/config`
-
-**Use Case**: Restrict AI agents to specific directories (e.g., only source code, not configuration)
-
-### Layer 7: User Blocklist
-
-**Purpose**: Block specific paths within workspace
-
-**Configuration**: Set via `blockedPaths`
-
-**Example**:
+### Security Configuration Options
 
 ```json
 {
-  "blockedPaths": [
-    ".git",
-    ".env",
-    "node_modules",
-    ".ssh",
-    "config/production.json"
-  ]
-}
-```
+  "workspaceRoot": "/path/to/workspace",
 
-**Effect**: These paths are blocked even if within workspace and allowed subdirectories
+  "allowedSubdirectories": ["src", "tests", "docs"],
 
-### Layer 8: User Pattern Blocklist
+  "blockedPaths": [".git", ".env", "node_modules", ".ssh"],
 
-**Purpose**: Block files matching patterns
+  "blockedPatterns": ["*.key", "*.pem", "*.env", "*secret*", "*password*"],
 
-**Configuration**: Set via `blockedPatterns`
-
-**Example**:
-
-```json
-{
-  "blockedPatterns": [
-    "*.key",
-    "*.pem",
-    "*.env",
-    "*secret*",
-    "*password*",
-    "*.config.prod.*"
-  ]
-}
-```
-
-**Pattern Syntax**: Standard regex patterns
-
-### Layer 9: Read-Only Mode
-
-**Purpose**: Prevent all write operations
-
-**Configuration**: Set via `readOnly`
-
-**Example**:
-
-```json
-{
-  "readOnly": true
-}
-```
-
-**Effect**:
-
-- ✅ ALLOWED: Read operations (search, checksum, watch)
-- ❌ BLOCKED: Write operations (copy, move, delete, create)
-
-**Use Case**: Allow AI agents to analyze code but not modify it
-
-### Layer 10: Symlink Validation
-
-**Purpose**: Prevent symlink escape attacks
-
-**Implementation**:
-
-- Symlink targets must be within workspace
-- Symlink chains are recursively validated
-- Broken symlinks are handled gracefully
-
-**Example**:
-
-```
-Workspace: /home/user/workspace
-
-✅ ALLOWED:
-  Link: /home/user/workspace/link → /home/user/workspace/target
-
-❌ BLOCKED:
-  Link: /home/user/workspace/link → /etc/passwd
-  Link: /home/user/workspace/link → /home/user/.ssh/id_rsa
-```
-
-## Configuration Examples
-
-### Example 1: Development Environment (Permissive)
-
-```json
-{
-  "workspaceRoot": "/home/user/projects/my-app",
-  "blockedPaths": [".git", "node_modules"],
-  "blockedPatterns": ["*.env"],
   "maxFileSize": 104857600,
   "maxBatchSize": 1073741824,
-  "maxOperationsPerMinute": 200,
+  "maxOperationsPerMinute": 100,
+
   "enableAuditLog": true,
+  "requireConfirmation": true,
   "readOnly": false
 }
 ```
 
-**Use Case**: Local development with AI assistant
-**Access**: Full workspace except `.git` and `node_modules`
-**Risk Level**: Low (trusted local environment)
+### Configuration Options Explained
 
-### Example 2: Production Environment (Restrictive)
+#### Workspace Boundary
+
+- **workspaceRoot** (REQUIRED): Absolute path to workspace directory
+  - All operations are confined to this directory
+  - Cannot be changed after server starts
+  - Must exist and be a directory
+
+#### Additional Restrictions
+
+- **allowedSubdirectories** (OPTIONAL): Array of subdirectories within workspace
+  - If specified, operations are further restricted to these paths
+  - Paths are relative to workspace root
+  - Example: `["src", "tests"]` only allows access to these directories
+
+#### Custom Blocklists
+
+- **blockedPaths** (OPTIONAL): Array of paths to block
+
+  - Paths are relative to workspace root
+  - Example: `[".git", ".env", "node_modules"]`
+  - Adds to hardcoded blocklists (does not replace)
+
+- **blockedPatterns** (OPTIONAL): Array of regex patterns to block
+  - Example: `["*.key", "*.pem", "*secret*"]`
+  - Adds to hardcoded patterns (does not replace)
+
+#### Resource Limits
+
+- **maxFileSize** (OPTIONAL): Maximum file size in bytes
+
+  - Default: 104857600 (100MB)
+  - Prevents operations on files exceeding this size
+
+- **maxBatchSize** (OPTIONAL): Maximum total size for batch operations
+
+  - Default: 1073741824 (1GB)
+  - Prevents batch operations exceeding this total size
+
+- **maxOperationsPerMinute** (OPTIONAL): Rate limit per agent
+  - Default: 100
+  - Prevents abuse through excessive operations
+
+#### Operational Settings
+
+- **enableAuditLog** (OPTIONAL): Enable operation logging
+
+  - Default: true
+  - Logs all operations with timestamps, paths, and results
+  - Security violations logged separately
+
+- **requireConfirmation** (OPTIONAL): Require confirmation for destructive operations
+
+  - Default: true
+  - Requires explicit confirmation for delete operations
+
+- **readOnly** (OPTIONAL): Enable read-only mode
+  - Default: false
+  - Prevents all write and delete operations
+  - Useful for untrusted agents
+
+## Security Best Practices
+
+### 1. Principle of Least Privilege
+
+**DO:**
+
+- Set `workspaceRoot` to the minimum directory needed
+- Use `allowedSubdirectories` to further restrict access
+- Enable `readOnly` mode for read-only use cases
+- Set conservative resource limits
+
+**DON'T:**
+
+- Set `workspaceRoot` to `/` or `C:\`
+- Allow access to entire home directory
+- Disable audit logging
+- Set unlimited resource limits
+
+### 2. Defense in Depth
+
+**DO:**
+
+- Use multiple security layers together
+- Configure custom blocklists in addition to hardcoded ones
+- Enable audit logging for monitoring
+- Set rate limits to prevent abuse
+
+**DON'T:**
+
+- Rely on a single security layer
+- Assume hardcoded blocklists are sufficient
+- Disable security features for convenience
+
+### 3. Monitoring and Auditing
+
+**DO:**
+
+- Enable audit logging (`enableAuditLog: true`)
+- Monitor logs for security violations
+- Review operation patterns regularly
+- Set up alerts for suspicious activity
+
+**DON'T:**
+
+- Disable audit logging in production
+- Ignore security violation logs
+- Run without monitoring
+
+### 4. Configuration Management
+
+**DO:**
+
+- Store configuration in version control
+- Review configuration changes
+- Use environment-specific configurations
+- Document security decisions
+
+**DON'T:**
+
+- Hard-code sensitive paths in configuration
+- Share configurations between environments
+- Modify configuration without review
+
+## Example Secure Configurations
+
+### Development Environment
 
 ```json
 {
-  "workspaceRoot": "/var/app/production",
-  "allowedSubdirectories": ["logs", "public"],
-  "blockedPaths": ["config", ".env", "secrets", "database"],
-  "blockedPatterns": [
-    "*.key",
-    "*.pem",
-    "*.env",
-    "*secret*",
-    "*password*",
-    "*.config.*"
-  ],
-  "maxFileSize": 10485760,
-  "maxBatchSize": 104857600,
+  "workspaceRoot": "/home/user/projects/my-project",
+  "allowedSubdirectories": ["src", "tests", "docs"],
+  "blockedPaths": [".git", ".env", "node_modules"],
+  "blockedPatterns": ["*.key", "*.pem"],
+  "maxFileSize": 104857600,
+  "maxBatchSize": 1073741824,
+  "maxOperationsPerMinute": 100,
+  "enableAuditLog": true,
+  "requireConfirmation": true,
+  "readOnly": false
+}
+```
+
+### Production Environment (Read-Only)
+
+```json
+{
+  "workspaceRoot": "/var/www/app",
+  "allowedSubdirectories": ["public", "assets"],
+  "blockedPaths": [".git", ".env", "config"],
+  "blockedPatterns": ["*.key", "*.pem", "*.env", "*secret*"],
+  "maxFileSize": 52428800,
+  "maxBatchSize": 524288000,
   "maxOperationsPerMinute": 50,
   "enableAuditLog": true,
   "requireConfirmation": true,
-  "readOnly": false
-}
-```
-
-**Use Case**: Production server with AI monitoring
-**Access**: Only logs and public files
-**Risk Level**: Medium (production environment)
-
-### Example 3: Read-Only Analysis (Most Restrictive)
-
-```json
-{
-  "workspaceRoot": "/home/user/codebase",
-  "allowedSubdirectories": ["src", "tests"],
-  "blockedPaths": [".git", "node_modules", ".env"],
-  "blockedPatterns": ["*.key", "*.pem", "*.env"],
-  "maxFileSize": 52428800,
-  "maxBatchSize": 524288000,
-  "maxOperationsPerMinute": 100,
-  "enableAuditLog": true,
   "readOnly": true
 }
 ```
 
-**Use Case**: Code analysis and review
-**Access**: Read-only access to source and tests
-**Risk Level**: Very Low (no write access)
-
-### Example 4: Shared Team Environment
+### CI/CD Environment
 
 ```json
 {
-  "workspaceRoot": "/shared/team/project",
-  "allowedSubdirectories": ["src", "tests", "docs", "scripts"],
-  "blockedPaths": [
-    ".git",
-    ".env",
-    "node_modules",
-    "config/production",
-    "secrets"
-  ],
-  "blockedPatterns": [
-    "*.key",
-    "*.pem",
-    "*.env",
-    "*secret*",
-    "*password*",
-    "*.prod.*"
-  ],
-  "maxFileSize": 52428800,
-  "maxBatchSize": 524288000,
-  "maxOperationsPerMinute": 75,
+  "workspaceRoot": "/workspace",
+  "allowedSubdirectories": ["src", "dist", "build"],
+  "blockedPaths": [".git", ".env"],
+  "blockedPatterns": ["*.key", "*.pem"],
+  "maxFileSize": 209715200,
+  "maxBatchSize": 2147483648,
+  "maxOperationsPerMinute": 200,
   "enableAuditLog": true,
-  "requireConfirmation": true,
+  "requireConfirmation": false,
   "readOnly": false
 }
 ```
 
-**Use Case**: Shared development environment
-**Access**: Source, tests, docs, scripts only
-**Risk Level**: Medium (multiple users)
+## What AI Agents CANNOT Do
 
-## Resource Limits
+Regardless of configuration, AI agents **CANNOT**:
 
-### File Size Limits
+1. Access files outside the workspace root
+2. Access system directories (`/etc`, `/sys`, `C:\Windows`, etc.)
+3. Access SSH keys, AWS credentials, or other sensitive files
+4. Create symlinks pointing outside the workspace
+5. Bypass rate limits
+6. Disable audit logging
+7. Modify the workspace root
+8. Access files matching sensitive patterns (`*.key`, `*.pem`, etc.)
+9. Escape the workspace through path traversal (`../`)
+10. Access files through symlinks pointing outside workspace
 
-**Purpose**: Prevent disk exhaustion and memory issues
+## What AI Agents CAN Do (Within Workspace)
 
-**Configuration**:
+Within the configured workspace, AI agents **CAN**:
 
-```json
-{
-  "maxFileSize": 104857600, // 100 MB per file
-  "maxBatchSize": 1073741824 // 1 GB total per batch
-}
-```
-
-**Recommendations**:
-
-- **Development**: 100 MB file, 1 GB batch
-- **Production**: 10 MB file, 100 MB batch
-- **Analysis**: 50 MB file, 500 MB batch
-
-### Rate Limiting
-
-**Purpose**: Prevent resource exhaustion from excessive operations
-
-**Configuration**:
-
-```json
-{
-  "maxOperationsPerMinute": 100
-}
-```
-
-**How It Works**:
-
-- Tracks operations per agent per minute
-- Sliding window (last 60 seconds)
-- Separate limit per agent ID
-
-**Recommendations**:
-
-- **Development**: 200 ops/min
-- **Production**: 50 ops/min
-- **Shared**: 75 ops/min
+1. Read, write, and delete files
+2. Create and navigate directories
+3. Search for files by name or content
+4. Watch directories for changes
+5. Compute checksums
+6. Create symlinks (within workspace)
+7. Perform batch operations
+8. Sync directories
+9. Analyze disk usage
+10. Copy and move files
 
 ## Audit Logging
 
-### What Gets Logged
+### Log Format
 
-**Successful Operations**:
+All operations are logged in JSON format:
 
 ```json
 {
-  "timestamp": "2024-01-15T10:30:45.123Z",
+  "timestamp": "2024-01-15T10:30:00.000Z",
   "level": "AUDIT",
   "operation": "fs_batch_operations",
-  "paths": ["src/file1.ts", "src/file2.ts"],
+  "paths": ["file1.txt", "file2.txt"],
   "result": "success"
 }
 ```
 
-**Security Violations**:
+### Security Violations
+
+Security violations are logged separately:
 
 ```json
 {
-  "timestamp": "2024-01-15T10:30:45.123Z",
+  "timestamp": "2024-01-15T10:30:00.000Z",
   "level": "SECURITY_VIOLATION",
   "type": "workspace_escape",
   "input": "../../etc/passwd",
@@ -432,406 +383,71 @@ Workspace: /home/user/workspace
 
 ### Violation Types
 
-- `workspace_escape`: Path outside workspace
-- `path_traversal`: Path contains `..` sequences
-- `system_path_access`: Attempt to access system directory
-- `sensitive_file_access`: Attempt to access sensitive file
-- `subdirectory_restriction`: Path not in allowed subdirectories
-- `blocked_path`: Path in user blocklist
-- `blocked_pattern`: Path matches blocked pattern
-- `symlink_escape`: Symlink target outside workspace
-- `rate_limit`: Too many operations
-
-### Log Analysis
-
-**Find Security Violations**:
-
-```bash
-grep "SECURITY_VIOLATION" mcp-filesystem.log
-```
-
-**Count Violations by Type**:
-
-```bash
-grep "SECURITY_VIOLATION" mcp-filesystem.log | jq -r '.type' | sort | uniq -c
-```
-
-**Find Specific Agent Activity**:
-
-```bash
-grep "agent-id-123" mcp-filesystem.log
-```
-
-## What AI Agents CANNOT Do
-
-### Filesystem Access Restrictions
-
-❌ **Access files outside workspace root**
-
-- All operations confined to configured workspace
-- Cannot access parent directories
-- Cannot follow symlinks outside workspace
-
-❌ **Access system directories** (Hardcoded - Cannot be disabled)
-
-- `/etc`, `/sys`, `/proc`, `/dev`, `/boot`, `/root`
-- `C:\Windows`, `C:\Program Files`
-- `/System`, `/Library`, `/Applications`
-- `/bin`, `/sbin`, `/usr/bin`, `/usr/sbin`
-
-❌ **Access sensitive files** (Hardcoded - Cannot be disabled)
-
-- SSH keys (`.ssh/`, `id_rsa`, etc.)
-- Certificates (`*.pem`, `*.key`, `*.p12`, `*.pfx`)
-- Cloud credentials (`.aws/`, `.kube/`, `.gcloud/`)
-- Secrets and passwords (files containing these terms)
-- Environment files (`.env`)
-
-❌ **Bypass security layers**
-
-- Cannot disable path validation
-- Cannot override hardcoded blocklists
-- Cannot modify workspace root after startup
-- Cannot disable audit logging
-
-❌ **Exceed resource limits**
-
-- Cannot process files larger than `maxFileSize`
-- Cannot batch operations exceeding `maxBatchSize`
-- Cannot exceed `maxOperationsPerMinute` rate limit
-
-### Operation Restrictions
-
-❌ **Write operations in read-only mode**
-
-- When `readOnly: true`, all write operations blocked
-- Includes: copy, move, delete, create, modify
-
-❌ **Create symlinks outside workspace**
-
-- All symlink targets must be within workspace
-- Symlink chains validated recursively
-
-❌ **Access blocked paths**
-
-- Paths in `blockedPaths` always denied
-- Patterns in `blockedPatterns` always denied
-
-❌ **Access restricted subdirectories**
-
-- When `allowedSubdirectories` configured, only those paths accessible
-- All other workspace paths blocked
-
-## What AI Agents CAN Do (Within Workspace)
-
-### Read Operations
-
-✅ **Read files**
-
-- Read file contents
-- Get file metadata (size, timestamps, permissions)
-- List directory contents
-
-✅ **Search files**
-
-- Search by filename pattern
-- Search by content (full-text)
-- Search by metadata (size, date, type)
-- Use indexed search for performance
-
-✅ **Watch directories**
-
-- Monitor filesystem changes
-- Filter events by pattern
-- Receive real-time notifications
-
-✅ **Compute checksums**
-
-- MD5, SHA-1, SHA-256, SHA-512
-- Verify file integrity
-- Batch checksum operations
-
-✅ **Analyze disk usage**
-
-- Calculate directory sizes
-- Identify largest files
-- Group by file type
-
-### Write Operations (When Not Read-Only)
-
-✅ **Create and modify files**
-
-- Write new files
-- Modify existing files
-- Atomic file replacement
-
-✅ **Copy and move files**
-
-- Single file operations
-- Batch operations with rollback
-- Recursive directory copy
-
-✅ **Delete files**
-
-- Single file deletion
-- Batch deletion with rollback
-- Recursive directory deletion
-
-✅ **Create symlinks** (within workspace)
-
-- Create symbolic links
-- Link targets must be within workspace
-- Symlink chains validated
-
-✅ **Sync directories**
-
-- Copy only newer/missing files
-- Exclude patterns supported
-- Preserve metadata option
-
-### Advanced Operations
-
-✅ **Batch operations**
-
-- Execute multiple operations atomically
-- Automatic rollback on failure
-- Mixed operation types (copy, move, delete)
-
-✅ **Build file indexes**
-
-- Index file metadata
-- Index text content
-- Fast search queries
-
-✅ **Directory operations**
-
-- Recursive copy with exclusions
-- Sync with timestamp comparison
-- Preserve metadata and permissions
-
-## Best Practices
-
-### 1. Principle of Least Privilege
-
-**Start Restrictive**: Begin with minimal access and expand as needed
-
-```json
-{
-  "workspaceRoot": "/project",
-  "allowedSubdirectories": ["src"], // Start with just source
-  "readOnly": true // Start read-only
-}
-```
-
-**Expand Gradually**: Add access only when required
-
-```json
-{
-  "allowedSubdirectories": ["src", "tests"], // Add tests
-  "readOnly": false // Enable writes
-}
-```
-
-### 2. Use Subdirectory Restrictions
-
-**Don't**: Allow full workspace access
-
-```json
-{
-  "workspaceRoot": "/project"
-  // No subdirectory restrictions - full access
-}
-```
-
-**Do**: Restrict to necessary directories
-
-```json
-{
-  "workspaceRoot": "/project",
-  "allowedSubdirectories": ["src", "tests", "docs"]
-}
-```
-
-### 3. Block Sensitive Paths
-
-**Always block**:
-
-- Version control: `.git`, `.svn`, `.hg`
-- Dependencies: `node_modules`, `vendor`, `venv`
-- Environment files: `.env`, `.env.local`, `.env.production`
-- Configuration: `config/production`, `secrets/`
-
-```json
-{
-  "blockedPaths": [
-    ".git",
-    ".env",
-    "node_modules",
-    "config/production",
-    "secrets"
-  ]
-}
-```
-
-### 4. Use Pattern Blocklists
-
-**Block by extension**:
-
-```json
-{
-  "blockedPatterns": ["*.key", "*.pem", "*.env", "*.p12", "*.pfx"]
-}
-```
-
-**Block by content**:
-
-```json
-{
-  "blockedPatterns": ["*secret*", "*password*", "*token*", "*credential*"]
-}
-```
-
-### 5. Enable Audit Logging
-
-**Always enable in production**:
-
-```json
-{
-  "enableAuditLog": true
-}
-```
-
-**Monitor logs regularly**:
-
-```bash
-# Check for violations
-grep "SECURITY_VIOLATION" logs/mcp-filesystem.log
-
-# Monitor operations
-tail -f logs/mcp-filesystem.log | grep "AUDIT"
-```
-
-### 6. Set Appropriate Resource Limits
-
-**Match limits to environment**:
-
-**Development** (generous):
-
-```json
-{
-  "maxFileSize": 104857600, // 100 MB
-  "maxBatchSize": 1073741824, // 1 GB
-  "maxOperationsPerMinute": 200
-}
-```
-
-**Production** (conservative):
-
-```json
-{
-  "maxFileSize": 10485760, // 10 MB
-  "maxBatchSize": 104857600, // 100 MB
-  "maxOperationsPerMinute": 50
-}
-```
-
-### 7. Use Read-Only Mode for Analysis
-
-**Code review and analysis**:
-
-```json
-{
-  "readOnly": true,
-  "allowedSubdirectories": ["src", "tests"]
-}
-```
-
-**Benefits**:
-
-- No risk of accidental modifications
-- Safe for untrusted agents
-- Audit trail of read operations
-
-### 8. Regular Security Audits
-
-**Review configuration monthly**:
-
-- Are subdirectory restrictions still appropriate?
-- Are blocked paths comprehensive?
-- Are resource limits adequate?
-
-**Review audit logs weekly**:
-
-- Any security violations?
-- Unusual operation patterns?
-- Rate limit violations?
-
-**Update blocklists regularly**:
-
-- New sensitive file patterns?
-- New configuration files to protect?
-- New dependencies to exclude?
-
-## Security Checklist
-
-Before deploying to production:
-
-- [ ] Workspace root is correctly configured
-- [ ] Subdirectory restrictions are in place
-- [ ] Blocked paths include all sensitive directories
-- [ ] Blocked patterns cover all sensitive file types
-- [ ] Resource limits are appropriate for environment
-- [ ] Audit logging is enabled
-- [ ] Read-only mode considered for analysis workloads
-- [ ] Logs are monitored regularly
-- [ ] Security configuration is version controlled
-- [ ] Team is trained on security model
-
-## Incident Response
-
-### If Security Violation Detected
-
-1. **Identify the violation**:
-
-   ```bash
-   grep "SECURITY_VIOLATION" logs/mcp-filesystem.log | tail -20
-   ```
-
-2. **Determine severity**:
-
-   - **Critical**: System path or sensitive file access attempt
-   - **High**: Workspace escape attempt
-   - **Medium**: Blocked path access
-   - **Low**: Rate limit violation
-
-3. **Take action**:
-
-   - **Critical/High**: Stop server immediately, investigate
-   - **Medium**: Review configuration, tighten restrictions
-   - **Low**: Adjust rate limits if legitimate use
-
-4. **Update configuration**:
-
-   - Add new blocked paths/patterns
-   - Tighten subdirectory restrictions
-   - Reduce resource limits if needed
-
-5. **Document incident**:
-   - What was attempted?
-   - How was it blocked?
-   - What configuration changes were made?
-
-## Support
-
-For security concerns or questions:
+- `workspace_escape` - Path outside workspace
+- `path_traversal` - Path contains traversal sequences
+- `system_path_access` - Attempt to access system directory
+- `sensitive_file_access` - Attempt to access sensitive file
+- `subdirectory_restriction` - Path not in allowed subdirectories
+- `blocked_path` - Path matches user blocklist
+- `blocked_pattern` - Path matches blocked pattern
+- `rate_limit` - Rate limit exceeded
+- `symlink_escape` - Symlink target outside workspace
+
+## Threat Model
+
+### Threats Mitigated
+
+1. **Path Traversal Attacks**: Multiple layers prevent `../` escapes
+2. **Symlink Attacks**: Symlink targets validated within workspace
+3. **System File Access**: Hardcoded blocklists prevent system access
+4. **Credential Theft**: Sensitive patterns block credential files
+5. **Resource Exhaustion**: File size and rate limits prevent abuse
+6. **Unauthorized Access**: Workspace jail confines all operations
+
+### Threats NOT Mitigated
+
+1. **Malicious File Content**: Server does not scan file contents
+2. **Application Logic Bugs**: Server cannot prevent application-level issues
+3. **Social Engineering**: Server cannot prevent user manipulation
+4. **Physical Access**: Server cannot prevent physical access to files
+5. **Network Attacks**: Server does not provide network security
+
+## Reporting Security Issues
+
+If you discover a security vulnerability, please report it to:
 
 - **Email**: security@digitaldefiance.org
-- **Issues**: [GitHub Security Advisories](https://github.com/Digital-Defiance/ai-capabilities-suite/security/advisories)
+- **Subject**: [SECURITY] MCP Filesystem Vulnerability
+
+Please include:
+
+- Description of the vulnerability
+- Steps to reproduce
+- Potential impact
+- Suggested fix (if any)
+
+**DO NOT** disclose security vulnerabilities publicly until they have been addressed.
 
 ## Security Updates
 
-Subscribe to security updates:
+Security updates are released as soon as possible after vulnerabilities are confirmed. Subscribe to:
 
-- Watch the [GitHub repository](https://github.com/Digital-Defiance/ai-capabilities-suite)
-- Follow [@DigitalDefiance](https://twitter.com/DigitalDefiance) on Twitter
-- Join our [Discord community](https://discord.gg/digitaldefiance)
+- **GitHub Security Advisories**: https://github.com/Digital-Defiance/ai-capabilities-suite/security/advisories
+- **NPM Security Advisories**: https://www.npmjs.com/package/@ai-capabilities-suite/mcp-filesystem
+
+## Compliance
+
+The MCP Filesystem Server is designed to support compliance with:
+
+- **OWASP Top 10**: Addresses path traversal, injection, and access control
+- **CWE-22**: Path Traversal prevention
+- **CWE-59**: Improper Link Resolution prevention
+- **CWE-73**: External Control of File Name prevention
+
+## License
+
+This security policy is part of the MCP Filesystem Server and is licensed under the MIT License.
+
+## Acknowledgments
+
+Security is a community effort. Thank you to all contributors who help keep this project secure.

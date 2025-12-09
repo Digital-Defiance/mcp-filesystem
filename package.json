@@ -7,9 +7,7 @@
   "main": "./dist/index.js",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
-  "bin": {
-    "mcp-filesystem": "./dist/cli.js"
-  },
+  "bin": "./dist/cli.js",
   "exports": {
     "./package.json": "./package.json",
     ".": {
