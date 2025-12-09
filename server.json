@@ -1,0 +1,54 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.Digital-Defiance/mcp-filesystem",
+  "description": "Advanced filesystem operations for AI agents with strict security boundaries. Batch operations, directory watching, file search/indexing, checksums, symlinks, and disk usage analysis - all within secure, configurable boundaries.",
+  "version": "0.1.0",
+  "homepage": "https://github.com/Digital-Defiance/mcp-filesystem",
+  "license": "MIT",
+  "packages": [
+    {
+      "registry_type": "npm",
+      "identifier": "@ai-capabilities-suite/mcp-filesystem",
+      "version": "0.1.0"
+    },
+    {
+      "registry_type": "docker",
+      "identifier": "digitaldefiance/mcp-filesystem",
+      "version": "latest"
+    }
+  ],
+  "capabilities": {
+    "tools": [
+      "fs_batch_operations",
+      "fs_watch_directory",
+      "fs_get_watch_events",
+      "fs_stop_watch",
+      "fs_search_files",
+      "fs_build_index",
+      "fs_create_symlink",
+      "fs_compute_checksum",
+      "fs_verify_checksum",
+      "fs_analyze_disk_usage",
+      "fs_copy_directory",
+      "fs_sync_directory"
+    ]
+  },
+  "categories": [
+    "filesystem",
+    "file-management",
+    "security",
+    "development-tools"
+  ],
+  "keywords": [
+    "filesystem",
+    "file-operations",
+    "batch-operations",
+    "directory-watching",
+    "file-search",
+    "file-indexing",
+    "security",
+    "checksums",
+    "symlinks",
+    "disk-usage"
+  ]
+}

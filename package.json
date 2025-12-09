@@ -1,6 +1,6 @@
 {
   "name": "@ai-capabilities-suite/mcp-filesystem",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "mcpName": "io.github.Digital-Defiance/mcp-filesystem",
   "packageManager": "yarn@4.12.0",
   "description": "MCP server for advanced filesystem operations with strict security boundaries. Batch operations, directory watching, file search/indexing, and permission management - all within secure, configurable boundaries.",
@@ -71,10 +71,10 @@
     "url": "https://digitaldefiance.org"
   },
   "license": "MIT",
-  "homepage": "https://github.com/digital-defiance/ai-capabilities-suite/tree/main/packages/mcp-filesystem#readme",
+  "homepage": "https://github.com/Digital-Defiance/mcp-filesystem",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/digital-defiance/mcp-filesystem.git"
+    "url": "git+https://github.com/Digital-Defiance/mcp-filesystem.git"
   },
   "bugs": {
     "url": "https://github.com/digital-defiance/ai-capabilities-suite/issues",
