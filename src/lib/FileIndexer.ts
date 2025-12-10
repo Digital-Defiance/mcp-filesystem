@@ -100,29 +100,36 @@ export class FileIndexer implements IFileIndexer {
           const subFiles = await this.scanDirectory(fullPath);
           files.push(...subFiles);
         } else if (entry.isFile()) {
-          const stats = await fs.promises.stat(fullPath);
-          const metadata: FileMetadata = {
-            path: fullPath,
-            size: stats.size,
-            mtime: stats.mtime,
-            type: path.extname(entry.name),
-          };
+          try {
+            const stats = await fs.promises.stat(fullPath);
+            const metadata: FileMetadata = {
+              path: fullPath,
+              size: stats.size,
+              mtime: stats.mtime,
+              type: path.extname(entry.name),
+            };
 
-          // Index text file content if enabled and file is small enough
-          if (
-            this.includeContent &&
-            this.isTextFile(entry.name) &&
-            stats.size < this.MAX_CONTENT_SIZE
-          ) {
-            try {
-              metadata.content = await fs.promises.readFile(fullPath, "utf-8");
-            } catch (error) {
-              // Skip files that can't be read as text
-              metadata.content = undefined;
+            // Index text file content if enabled and file is small enough
+            if (
+              this.includeContent &&
+              this.isTextFile(entry.name) &&
+              stats.size < this.MAX_CONTENT_SIZE
+            ) {
+              try {
+                metadata.content = await fs.promises.readFile(fullPath, "utf-8");
+              } catch (error) {
+                // Skip files that can't be read as text
+                metadata.content = undefined;
+              }
+            }
+
+            files.push(metadata);
+          } catch (error: any) {
+            // Skip files that were deleted between readdir and stat (race condition)
+            if (error.code !== 'ENOENT') {
+              console.error(`Error processing file ${fullPath}:`, error);
             }
           }
-
-          files.push(metadata);
         }
       }
     } catch (error) {
@@ -147,10 +154,24 @@ export class FileIndexer implements IFileIndexer {
 
     // Perform lunr search based on search type
     if (options.searchType === "name" || options.searchType === "both") {
-      const nameResults = this.index.search(`name:${options.query}*`);
-      results = nameResults
-        .map((r) => this.files.get(r.ref))
-        .filter((f): f is FileMetadata => f !== undefined);
+      // Try multiple search strategies for better matching
+      try {
+        const nameResults = this.index.search(`name:${options.query}*`);
+        results = nameResults
+          .map((r) => this.files.get(r.ref))
+          .filter((f): f is FileMetadata => f !== undefined);
+      } catch (error) {
+        // If search fails, fall back to manual filtering
+        results = [];
+      }
+      
+      // If no results from Lunr or for substring matches, use manual filtering
+      if (results.length === 0) {
+        results = Array.from(this.files.values()).filter((f) => {
+          const basename = path.basename(f.path);
+          return basename.toLowerCase().includes(options.query.toLowerCase());
+        });
+      }
     }
 
     if (options.searchType === "content" || options.searchType === "both") {

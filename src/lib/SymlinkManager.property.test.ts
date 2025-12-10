@@ -109,7 +109,7 @@ describe("SymlinkManager Property-Based Tests", () => {
             ),
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2),
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
-          ),
+          ).filter(([_dirPath, targetName, linkName]) => targetName !== linkName),
           async ([dirPath, targetName, linkName]) => {
             // Create nested directory structure
             const nestedDir = path.join(tempDir, ...dirPath);
@@ -320,7 +320,7 @@ describe("SymlinkManager Property-Based Tests", () => {
           fc.tuple(
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2),
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
-          ),
+          ).filter(([target, link]) => target !== link),
           async ([targetName, linkName]) => {
             // Create target file
             const targetPath = path.join(tempDir, targetName);
