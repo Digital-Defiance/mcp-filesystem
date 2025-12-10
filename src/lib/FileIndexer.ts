@@ -116,7 +116,10 @@ export class FileIndexer implements IFileIndexer {
               stats.size < this.MAX_CONTENT_SIZE
             ) {
               try {
-                metadata.content = await fs.promises.readFile(fullPath, "utf-8");
+                metadata.content = await fs.promises.readFile(
+                  fullPath,
+                  "utf-8"
+                );
               } catch (error) {
                 // Skip files that can't be read as text
                 metadata.content = undefined;
@@ -126,7 +129,7 @@ export class FileIndexer implements IFileIndexer {
             files.push(metadata);
           } catch (error: any) {
             // Skip files that were deleted between readdir and stat (race condition)
-            if (error.code !== 'ENOENT') {
+            if (error.code !== "ENOENT") {
               console.error(`Error processing file ${fullPath}:`, error);
             }
           }
@@ -164,7 +167,7 @@ export class FileIndexer implements IFileIndexer {
         // If search fails, fall back to manual filtering
         results = [];
       }
-      
+
       // If no results from Lunr or for substring matches, use manual filtering
       if (results.length === 0) {
         results = Array.from(this.files.values()).filter((f) => {

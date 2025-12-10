@@ -102,12 +102,12 @@ describe("FileIndexer Property Tests", () => {
           async (files, searchPattern) => {
             // Deduplicate files by name to avoid race conditions
             const uniqueFiles = Array.from(
-              new Map(files.map(f => [f.name, f])).values()
+              new Map(files.map((f) => [f.name, f])).values()
             );
 
             // Create test files concurrently and wait for all to complete
             await Promise.all(
-              uniqueFiles.map(file => {
+              uniqueFiles.map((file) => {
                 const filePath = path.join(tempDir, file.name);
                 return fs.promises.writeFile(filePath, file.content);
               })
@@ -161,7 +161,7 @@ describe("FileIndexer Property Tests", () => {
           async (initialFiles, fileToUpdate) => {
             // Deduplicate initial files by name
             const uniqueInitialFiles = Array.from(
-              new Map(initialFiles.map(f => [f.name, f])).values()
+              new Map(initialFiles.map((f) => [f.name, f])).values()
             );
 
             // Create initial test files

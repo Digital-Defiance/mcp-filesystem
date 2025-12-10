@@ -436,9 +436,11 @@ describe("DirectoryWatcher Property-Based Tests", () => {
       );
     });
 
-    it("should support multiple filter patterns", async () => {
-      await fc.assert(
-        fc.asyncProperty(
+    it(
+      "should support multiple filter patterns",
+      async () => {
+        await fc.assert(
+          fc.asyncProperty(
           fc.tuple(
             fc.array(
               fc
@@ -522,6 +524,8 @@ describe("DirectoryWatcher Property-Based Tests", () => {
         ),
         { numRuns: 10 }
       );
-    });
+    },
+      120000
+    ); // 2 minutes timeout for property-based test with file operations
   });
 });

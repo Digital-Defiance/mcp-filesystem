@@ -100,16 +100,22 @@ describe("SymlinkManager Property-Based Tests", () => {
     it("should create symlinks with relative paths correctly", async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.tuple(
-            fc.array(
+          fc
+            .tuple(
+              fc.array(
+                fc
+                  .stringMatching(/^[a-zA-Z0-9_-]+$/)
+                  .filter((s) => s.length >= 2),
+                { minLength: 1, maxLength: 3 }
+              ),
               fc
                 .stringMatching(/^[a-zA-Z0-9_-]+$/)
                 .filter((s) => s.length >= 2),
-              { minLength: 1, maxLength: 3 }
+              fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
+            )
+            .filter(
+              ([_dirPath, targetName, linkName]) => targetName !== linkName
             ),
-            fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2),
-            fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
-          ).filter(([_dirPath, targetName, linkName]) => targetName !== linkName),
           async ([dirPath, targetName, linkName]) => {
             // Create nested directory structure
             const nestedDir = path.join(tempDir, ...dirPath);
@@ -285,7 +291,7 @@ describe("SymlinkManager Property-Based Tests", () => {
           fc.tuple(
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2),
             fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
-          ),
+          ).filter(([targetName, linkName]) => targetName !== linkName), // Ensure different names
           async ([targetName, linkName]) => {
             // Create target file
             const targetPath = path.join(tempDir, targetName);
@@ -317,10 +323,14 @@ describe("SymlinkManager Property-Based Tests", () => {
     it("should detect broken symlinks", async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.tuple(
-            fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2),
-            fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
-          ).filter(([target, link]) => target !== link),
+          fc
+            .tuple(
+              fc
+                .stringMatching(/^[a-zA-Z0-9_-]+$/)
+                .filter((s) => s.length >= 2),
+              fc.stringMatching(/^[a-zA-Z0-9_-]+$/).filter((s) => s.length >= 2)
+            )
+            .filter(([target, link]) => target !== link),
           async ([targetName, linkName]) => {
             // Create target file
             const targetPath = path.join(tempDir, targetName);
