@@ -252,13 +252,21 @@ describe("BatchOperationManager Property-Based Tests", () => {
       fc.assert(
         fc.asyncProperty(
           fc.tuple(
-            fc.array(
-              fc.stringMatching(/^[a-zA-Z0-9_]+$/).filter((s) => s.length >= 2),
-              {
-                minLength: 3,
-                maxLength: 5,
-              }
-            ),
+            fc
+              .array(
+                fc
+                  .stringMatching(/^[a-zA-Z0-9_]+$/)
+                  .filter((s) => s.length >= 2),
+                {
+                  minLength: 3,
+                  maxLength: 5,
+                }
+              )
+              .filter((arr) => {
+                // Ensure all filenames are unique
+                const uniqueSet = new Set(arr);
+                return uniqueSet.size === arr.length;
+              }),
             fc.integer({ min: 0, max: 10 })
           ),
           async ([filenames, invalidIndex]) => {

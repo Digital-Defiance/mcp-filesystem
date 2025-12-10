@@ -70,13 +70,21 @@ describe("DirectoryOperations Property-Based Tests", () => {
               { minLength: 1, maxLength: 10 }
             )
             .map((arr) => {
-              // Deduplicate by path (keep last occurrence)
+              // Deduplicate by path and remove conflicting paths
               const pathMap = new Map<string, (typeof arr)[0]>();
               for (const file of arr) {
                 const pathKey = file.path.join("/");
                 pathMap.set(pathKey, file);
               }
-              return Array.from(pathMap.values());
+              
+              // Filter out paths that conflict (where one is a prefix of another)
+              const paths = Array.from(pathMap.keys());
+              const validPaths = paths.filter(p1 => {
+                // Check if this path is a prefix of any other path
+                return !paths.some(p2 => p2 !== p1 && p2.startsWith(p1 + "/"));
+              });
+              
+              return validPaths.map(p => pathMap.get(p)!);
             }),
           async (fileStructure) => {
             const testId = `test-copy-${iterationCounter++}`;

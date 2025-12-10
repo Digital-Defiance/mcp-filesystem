@@ -1,6 +1,6 @@
 {
   "name": "@ai-capabilities-suite/mcp-filesystem",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "mcpName": "io.github.Digital-Defiance/mcp-filesystem",
   "packageManager": "yarn@4.12.0",
   "description": "MCP server for advanced filesystem operations with strict security boundaries. Batch operations, directory watching, file search/indexing, and permission management - all within secure, configurable boundaries.",

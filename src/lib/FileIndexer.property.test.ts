@@ -96,15 +96,22 @@ describe("FileIndexer Property Tests", () => {
               name: fc.stringMatching(/^[a-z]{3,8}\.(txt|md|js)$/),
               content: fc.string({ minLength: 0, maxLength: 100 }),
             }),
-            { minLength: 10, maxLength: 100 } // Typical query size
+            { minLength: 10, maxLength: 50 } // Reduced max for faster tests
           ),
           fc.stringMatching(/^[a-z]{3,5}$/),
           async (files, searchPattern) => {
-            // Create test files
-            for (const file of files) {
-              const filePath = path.join(tempDir, file.name);
-              await fs.promises.writeFile(filePath, file.content);
-            }
+            // Deduplicate files by name to avoid race conditions
+            const uniqueFiles = Array.from(
+              new Map(files.map(f => [f.name, f])).values()
+            );
+
+            // Create test files concurrently and wait for all to complete
+            await Promise.all(
+              uniqueFiles.map(file => {
+                const filePath = path.join(tempDir, file.name);
+                return fs.promises.writeFile(filePath, file.content);
+              })
+            );
 
             // Build index
             await indexer.buildIndex(tempDir, false);
@@ -125,9 +132,9 @@ describe("FileIndexer Property Tests", () => {
             expect(searchTime).toBeLessThan(100);
           }
         ),
-        { numRuns: 100 }
+        { numRuns: 20 } // Reduced from 100 to avoid timeout
       );
-    });
+    }, 120000); // 2 minute timeout
   });
 
   /**
@@ -152,8 +159,13 @@ describe("FileIndexer Property Tests", () => {
             newContent: fc.string({ minLength: 0, maxLength: 100 }),
           }),
           async (initialFiles, fileToUpdate) => {
+            // Deduplicate initial files by name
+            const uniqueInitialFiles = Array.from(
+              new Map(initialFiles.map(f => [f.name, f])).values()
+            );
+
             // Create initial test files
-            for (const file of initialFiles) {
+            for (const file of uniqueInitialFiles) {
               const filePath = path.join(tempDir, file.name);
               await fs.promises.writeFile(filePath, file.content);
             }

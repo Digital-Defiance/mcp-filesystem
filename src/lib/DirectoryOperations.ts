@@ -319,7 +319,9 @@ export class DirectoryOperations implements IDirectoryOperations {
   }
 
   private shouldExclude(filePath: string, patterns: RegExp[]): boolean {
-    return patterns.some((pattern) => pattern.test(filePath));
+    // Test pattern against just the filename, not the full path
+    const fileName = path.basename(filePath);
+    return patterns.some((pattern) => pattern.test(fileName));
   }
 
   private globToRegex(glob: string): RegExp {
