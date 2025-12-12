@@ -36,12 +36,14 @@ describe("DirectoryWatcher Property-Based Tests", () => {
     it("should detect file creation events", async () => {
       await fc.assert(
         fc.asyncProperty(
-          fc.array(
-            fc
-              .stringMatching(/^[a-zA-Z0-9_]+\.txt$/)
-              .filter((s) => s.length >= 6),
-            { minLength: 1, maxLength: 5 }
-          ),
+          fc
+            .array(
+              fc
+                .stringMatching(/^[a-zA-Z0-9_]+\.txt$/)
+                .filter((s) => s.length >= 6),
+              { minLength: 1, maxLength: 5 }
+            )
+            .map((arr) => [...new Set(arr)]), // Ensure unique filenames
           async (filenames) => {
             const sessionId = uuidv4();
             const watchDir = path.join(tempDir, `watch-create-${sessionId}`);
@@ -436,11 +438,9 @@ describe("DirectoryWatcher Property-Based Tests", () => {
       );
     });
 
-    it(
-      "should support multiple filter patterns",
-      async () => {
-        await fc.assert(
-          fc.asyncProperty(
+    it("should support multiple filter patterns", async () => {
+      await fc.assert(
+        fc.asyncProperty(
           fc.tuple(
             fc.array(
               fc
@@ -524,8 +524,6 @@ describe("DirectoryWatcher Property-Based Tests", () => {
         ),
         { numRuns: 10 }
       );
-    },
-      120000
-    ); // 2 minutes timeout for property-based test with file operations
+    }, 120000); // 2 minutes timeout for property-based test with file operations
   });
 });
