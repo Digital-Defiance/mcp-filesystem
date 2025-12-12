@@ -42,7 +42,7 @@ export class MCPServer {
     this.server = new Server(
       {
         name: "mcp-filesystem",
-        version: "0.1.5",
+        version: "0.1.6",
       },
       {
         capabilities: {

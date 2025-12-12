@@ -14,7 +14,7 @@ RUN addgroup -g 1001 -S mcp && \
 WORKDIR /app
 
 # Install the published package from NPM
-RUN npm install -g @ai-capabilities-suite/mcp-filesystem@0.1.5
+RUN npm install -g @ai-capabilities-suite/mcp-filesystem@0.1.6
 
 # Create config and workspace directories
 RUN mkdir -p /app/config /app/workspace && chown mcp:mcp /app/config /app/workspace
@@ -43,7 +43,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
 # Labels for metadata
 LABEL org.opencontainers.image.title="MCP Filesystem Server" \
       org.opencontainers.image.description="Advanced filesystem operations for AI agents with strict security boundaries" \
-      org.opencontainers.image.version="0.1.5" \
+      org.opencontainers.image.version="0.1.6" \
       org.opencontainers.image.vendor="Digital Defiance" \
       org.opencontainers.image.authors="info@digitaldefiance.org" \
       org.opencontainers.image.url="https://github.com/digital-defiance/ai-capabilities-suite" \

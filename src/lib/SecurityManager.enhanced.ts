@@ -121,6 +121,30 @@ export class EnhancedSecurityManager implements ISecurityManager {
     /`.*`/g, // Backtick execution
   ];
 
+  /**
+   * Convert glob pattern to regex pattern
+   * @param pattern - Glob pattern (e.g., "*.key", "*secret*")
+   * @returns Regex pattern
+   */
+  private globToRegex(pattern: string): RegExp {
+    // If the pattern already looks like a regex (starts and ends with /),
+    // try to parse it as-is
+    if (pattern.startsWith("/") && pattern.endsWith("/")) {
+      return new RegExp(pattern.slice(1, -1));
+    }
+
+    // Escape special regex characters except * and ?
+    let regexPattern = pattern
+      .replace(/[.+^${}()|[\]\\]/g, "\\$&")
+      // Convert glob * to regex .*
+      .replace(/\*/g, ".*")
+      // Convert glob ? to regex .
+      .replace(/\?/g, ".");
+
+    // Match anywhere in the path
+    return new RegExp(regexPattern);
+  }
+
   constructor(config: SecurityConfig) {
     this.config = config;
     this.workspaceRoot = path.resolve(config.workspaceRoot);
@@ -153,10 +177,12 @@ export class EnhancedSecurityManager implements ISecurityManager {
     this.blockedPaths = new Set(
       config.blockedPaths.map((p) => path.resolve(this.workspaceRoot, p))
     );
-    this.blockedPatterns = config.blockedPatterns.map((p) => new RegExp(p));
+    this.blockedPatterns = config.blockedPatterns.map((p) =>
+      this.globToRegex(p)
+    );
     this.additionalBlockedPatterns = (
       config.additionalBlockedPatterns || []
-    ).map((p) => new RegExp(p));
+    ).map((p) => this.globToRegex(p));
 
     // Initialize emergency mode if configured
     if (config.emergencyStop) {

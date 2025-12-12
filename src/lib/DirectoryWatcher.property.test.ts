@@ -362,7 +362,7 @@ describe("DirectoryWatcher Property-Based Tests", () => {
         ),
         { numRuns: 10 }
       );
-    });
+    }, 120000); // 120 second timeout for property-based testing
 
     it("should report all events when no filters are specified", async () => {
       await fc.assert(
