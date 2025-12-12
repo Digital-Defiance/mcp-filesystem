@@ -535,14 +535,14 @@ MIT License - see [LICENSE](./LICENSE) for details.
 ## Support
 
 - **Issues**: [GitHub Issues](https://github.com/Digital-Defiance/ai-capabilities-suite/issues)
-- **Email**: info@digitaldefiance.org
+- **Email**: <info@digitaldefiance.org>
 - **Documentation**: [Full Documentation](https://github.com/Digital-Defiance/ai-capabilities-suite/tree/main/packages/mcp-filesystem)
 
 ## Related Projects
 
-- [MCP Debugger](../mcp-debugger-server) - Debug Node.js applications via MCP
-- [MCP Process](../mcp-process) - Process management via MCP
-- [MCP Screenshot](../mcp-screenshot) - Screenshot capture via MCP
+- [MCP ACS Debugger](../mcp-debugger-server) - Debug Node.js applications via MCP
+- [MCP ACS Process](../mcp-process) - Process management via MCP
+- [MCP ACS Screenshot](../mcp-screenshot) - Screenshot capture via MCP
 
 ## Acknowledgments
 
