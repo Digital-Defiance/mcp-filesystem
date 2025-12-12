@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "acs-filesystem": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@ai-capabilities-suite/mcp-filesystem@latest"
+      ],
+      "env": {}
+    }
+  }
+}
